@@ -1,14 +1,13 @@
 package com.SmartLearningPlatform.Platform.repository;
 
+import com.SmartLearningPlatform.Platform.entity.Chapter;
 import com.SmartLearningPlatform.Platform.entity.Subject;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
 
-public interface SubjectRepository extends JpaRepository<Subject, Long> {
+public interface ChapterRepository extends JpaRepository<Chapter, Long> {
 
-         List<Subject> findAllByStandard(String standard);
-
-         Subject findByNameAndStandard(String name, String standard);
+      List<Chapter> findBySubject(Subject subject);
 
 }
