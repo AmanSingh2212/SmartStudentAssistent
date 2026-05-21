@@ -31,7 +31,14 @@ public class QuestionPaper {
     private Subject subject;
 
     // One paper -> many questions
-    @OneToMany
+//    @OneToMany
+//    @JoinTable(
+//            name = "question_paper_questions",
+//            joinColumns = @JoinColumn(name = "question_paper_id"),
+//            inverseJoinColumns = @JoinColumn(name = "question_id")
+//    )
+//    private List<Question> questions = new ArrayList<>();
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinTable(
             name = "question_paper_questions",
             joinColumns = @JoinColumn(name = "question_paper_id"),
