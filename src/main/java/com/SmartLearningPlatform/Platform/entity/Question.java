@@ -8,6 +8,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
 @Getter
 @Setter
@@ -38,19 +41,24 @@ public class Question {
     @JoinColumn(name = "chapter_id", nullable = false)
     private Chapter chapter;
 
-    @Column(length = 2000)
-    private String correctAnswer;
+//    @Column(length = 2000)
+//    private String correctAnswer;
 
-    @Column(length = 4000)
-    private String explanation;
+//    @Column(length = 4000)
+//    private String explanation;
 
     @Column(nullable = false)
     private Integer marks;
 
-    @Column(nullable = false)
-    private boolean aiGenerated;
+//    @Column(nullable = false)
+//    private boolean aiGenerated;
 
-    @Column(length = 255)
-    private String createdBy;
+//    @Column(length = 255)
+//    private String createdBy;
+
+    @ElementCollection(fetch = FetchType.LAZY)
+    @CollectionTable(name = "question_options", joinColumns = @JoinColumn(name = "question_id"))
+    @Column(name = "option_text", length = 1000)
+    private List<String> options = new ArrayList<>();
 
 }

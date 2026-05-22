@@ -56,8 +56,8 @@ public class QuestionPaper {
     @Column(nullable = false)
     private boolean generatedByAI;
 
-    @Column(length = 255)
-    private String createdBy;
+//    @Column(length = 255)
+//    private String createdBy;
 
     @Column(nullable = false)
     private LocalDateTime createdAt;

@@ -40,10 +40,12 @@ public class GenerateQuestionPaperRequest {
 
     private String instructions;
 
-    @NotBlank
-    private String createdBy;
+//    @NotBlank
+//    private String createdBy;
 
     @NotNull
     private PaperType paperType;
+
+    private List<String> options;
 
 }

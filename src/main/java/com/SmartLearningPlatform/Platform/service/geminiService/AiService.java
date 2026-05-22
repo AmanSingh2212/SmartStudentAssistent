@@ -46,13 +46,86 @@ public class AiService {
                                                Integer duration,
                                                String title,
                                                String instructions,
-                                               String createdBy,
                                                PaperType paperType) {
 
         Subject subject = subjectRepository.findById(subjectId)
                 .orElseThrow(() -> new RuntimeException("Subject not found with id: " + subjectId));
 
         String chapters = String.join(", ", chapterNames);
+
+//        String prompt = """
+//Generate a CBSE question paper in strict JSON format.
+//
+//Rules:
+//- Use all chapters listed.
+//- Generate exactly %d questions.
+//- Total marks must be exactly %d.
+//- First 3 questions should be 1-mark MCQs.
+//- Remaining questions should mostly be 3-mark and 5-mark questions.
+//- Difficulty should be moderate to hard.
+//- Include numericals only where chapter naturally supports numericals.
+//- Do not include markdown.
+//- Return only valid JSON.
+//
+//Input:
+//{
+//  "title": "%s",
+//  "standard": "%s",
+//  "subject": "%s",
+//  "chapters": "%s",
+//  "noOfQuestions": %d,
+//  "totalMarks": %d,
+//  "duration": %d,
+//  "paperType": "%s",
+//  "instructions": "%s"
+//}
+//
+//For questionType, use ONLY one of these exact values:
+//MCQ, SHORT_ANSWER, LONG_ANSWER, NUMERICAL
+//
+//For difficulty, use ONLY one of these exact values:
+//EASY, MEDIUM, HARD
+//
+//Expected JSON fields:
+//- title
+//- totalMarks
+//- duration
+//- instructions
+//- paperType
+//- questions: array of objects
+//
+//                IMPORTANT JSON RULES:
+//                - Return ONLY valid JSON.
+//                - Do not wrap JSON in markdown or triple backticks.
+//                - Escape all newlines inside string values using \\\\n.
+//                - Do not put raw line breaks inside any JSON string field.
+//                - Use only double quotes for JSON keys and string values.
+//                - questionText, correctAnswer, and explanation must be valid JSON strings.
+//                - If a question has multiple lines, represent them with \\\\n inside the string.
+//
+//                - For MCQ questions, always generate exactly 4 options.
+//                - For NON-MCQ questions, options must be empty.
+//
+//Each question object must contain:
+//- questionText
+//- questionType
+//- difficulty
+//- chapterName
+//- marks
+//- options: array of 4 object options
+//""".formatted(
+//                noOfQuestions,
+//                totalMarks,
+//                title,
+//                subject.getStandard(),
+//                subject.getName(),
+//                chapters,
+//                noOfQuestions,
+//                totalMarks,
+//                duration,
+//                paperType.name(),
+//                instructions == null ? "" : instructions
+//        );
 
         String prompt = """
 Generate a CBSE question paper in strict JSON format.
@@ -95,23 +168,27 @@ Expected JSON fields:
 - paperType
 - questions: array of objects
 
-                IMPORTANT JSON RULES:
-                - Return ONLY valid JSON.
-                - Do not wrap JSON in markdown or triple backticks.
-                - Escape all newlines inside string values using \\\\n.
-                - Do not put raw line breaks inside any JSON string field.
-                - Use only double quotes for JSON keys and string values.
-                - questionText, correctAnswer, and explanation must be valid JSON strings.
-                - If a question has multiple lines, represent them with \\\\n inside the string.
+IMPORTANT JSON RULES:
+- Return ONLY valid JSON.
+- Do not wrap JSON in markdown or triple backticks.
+- Escape all newlines inside string values using \\\\n.
+- Do not put raw line breaks inside any JSON string field.
+- Use only double quotes for JSON keys and string values.
+- questionText, correctAnswer, and explanation must be valid JSON strings.
+- If a question has multiple lines, represent them with \\\\n inside the string.
+
+For MCQ questions, always generate exactly 4 options.
+For NON-MCQ questions, options must be an empty array.
 
 Each question object must contain:
 - questionText
 - questionType
 - difficulty
 - chapterName
+- marks
+- options: an array of strings
 - correctAnswer
 - explanation
-- marks
 """.formatted(
                 noOfQuestions,
                 totalMarks,
@@ -139,7 +216,7 @@ Each question object must contain:
         paper.setTotalMarks(aiResponse.getTotalMarks() != null ? aiResponse.getTotalMarks() : totalMarks);
         paper.setDuration(aiResponse.getDuration() != null ? aiResponse.getDuration() : duration);
         paper.setGeneratedByAI(true);
-        paper.setCreatedBy(createdBy);
+//        paper.setCreatedBy(createdBy);
         paper.setCreatedAt(LocalDateTime.now());
         paper.setPaperType(aiResponse.getPaperType() != null
                 ? PaperType.valueOf(aiResponse.getPaperType().toUpperCase())
@@ -158,17 +235,17 @@ Each question object must contain:
 
                 Question question = new Question();
                 question.setQuestionText(item.getQuestionText());
-//                question.setQuestionType(QuestionType.valueOf(item.getQuestionType().toUpperCase()));
                 question.setQuestionType(QuestionType.from(item.getQuestionType()));
-//                question.setDifficulty(Difficulty.valueOf(item.getDifficulty().toUpperCase()));
                 question.setDifficulty(Difficulty.from(item.getDifficulty()));
                 question.setSubject(subject);
                 question.setChapter(chapter);
-                question.setCorrectAnswer(item.getCorrectAnswer());
-                question.setExplanation(item.getExplanation());
+//              question.setCorrectAnswer(item.getCorrectAnswer());
+//                question.setExplanation(item.getExplanation());
                 question.setMarks(item.getMarks());
-                question.setAiGenerated(true);
-                question.setCreatedBy(createdBy);
+                question.setOptions(item.getOptions());
+
+//                question.setAiGenerated(true);
+//                question.setCreatedBy(createdBy);
 
                 savedQuestions.add(question);
             }

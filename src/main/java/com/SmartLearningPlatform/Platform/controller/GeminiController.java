@@ -30,7 +30,6 @@ public class GeminiController {
                 request.getDuration(),
                 request.getTitle(),
                 request.getInstructions(),
-                request.getCreatedBy(),
                 request.getPaperType()
         );
 

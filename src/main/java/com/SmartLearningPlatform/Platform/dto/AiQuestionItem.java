@@ -5,6 +5,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.List;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -15,8 +17,9 @@ public class AiQuestionItem {
     private String questionType;
     private String difficulty;
     private String chapterName;
-    private String correctAnswer;
-    private String explanation;
+//    private String correctAnswer;
+//    private String explanation;
+    private List<String> options;
     private Integer marks;
 
 }
