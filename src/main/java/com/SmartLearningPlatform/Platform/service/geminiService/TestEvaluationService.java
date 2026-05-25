@@ -17,14 +17,16 @@ import java.util.List;
 public class TestEvaluationService {
 
     private final QuestionPaperRepository questionPaperRepository;
-    private final AnswerRepository answersRepository; // Your correct answer key repository
+    private final AnswerRepository answersRepository;
     private final TestAttemptRepository testAttemptRepository;
-    private final LlmEvaluationService llmEvaluationService; // For checking descriptive items
+    private final LlmEvaluationService llmEvaluationService;
 
-    public TestEvaluationService(QuestionPaperRepository questionPaperRepository,
-                                 AnswerRepository answersRepository,
-                                 TestAttemptRepository testAttemptRepository,
-                                 LlmEvaluationService llmEvaluationService) {
+    public TestEvaluationService(
+            QuestionPaperRepository questionPaperRepository,
+            AnswerRepository answersRepository,
+            TestAttemptRepository testAttemptRepository,
+            LlmEvaluationService llmEvaluationService) {
+
         this.questionPaperRepository = questionPaperRepository;
         this.answersRepository = answersRepository;
         this.testAttemptRepository = testAttemptRepository;
@@ -32,72 +34,124 @@ public class TestEvaluationService {
     }
 
     @Transactional
-    public TestAttempt evaluateSubmission(Long questionPaperId, User user, List<String> studentAnswers,
-                                              LocalDateTime startTime) {
-        // 1. Fetch Question Paper and the correct Answer Key
-        QuestionPaper paper = questionPaperRepository.findById(questionPaperId)
-                .orElseThrow(() -> new IllegalArgumentException("Question Paper not found"));
+    public TestAttempt evaluateSubmission(
+            Long questionPaperId,
+            User user,
+            List<String> studentAnswers,
+            LocalDateTime startTime) {
 
-        Answers correctAnswersKey = answersRepository.findByQuestionPaperId(questionPaperId)
-                .orElseThrow(() -> new IllegalStateException("Answer Key not generated for this paper yet"));
+        // 1. Fetch Question Paper
+        QuestionPaper paper = questionPaperRepository.findById(questionPaperId)
+                .orElseThrow(() ->
+                        new IllegalArgumentException("Question Paper not found"));
+
+        // 2. Fetch Answer Key
+        Answers correctAnswersKey =
+                answersRepository.findByQuestionPaperId(questionPaperId)
+                        .orElseThrow(() ->
+                                new IllegalStateException(
+                                        "Answer Key not generated for this paper"));
 
         List<Question> questions = paper.getQuestions();
         List<String> correctAnswersList = correctAnswersKey.getAnswers();
 
         int totalQuestions = questions.size();
+
         int correctCount = 0;
         int wrongCount = 0;
-        int accumulatedScore = 0;
 
-        // 2. Loop and compare student input against correct answers
+        // IMPORTANT → now supports partial marks
+        double accumulatedScore = 0;
+
+        // 3. Evaluate Answers
         for (int i = 0; i < totalQuestions; i++) {
+
             Question question = questions.get(i);
 
-            // Handle cases where a student left an answer blank or skipped it
-            String studentAns = (i < studentAnswers.size()) ? studentAnswers.get(i) : "";
-            String correctAns = (i < correctAnswersList.size()) ? correctAnswersList.get(i) : "";
+            String studentAns =
+                    (i < studentAnswers.size())
+                            ? studentAnswers.get(i)
+                            : "";
 
-            boolean isCorrect = false;
+            String correctAns =
+                    (i < correctAnswersList.size())
+                            ? correctAnswersList.get(i)
+                            : "";
 
-            if (studentAns == null || studentAns.trim().isEmpty()) {
+            double obtainedMarks = 0;
+
+            // Blank answer
+            if (studentAns == null ||
+                    studentAns.trim().isEmpty()) {
+
                 wrongCount++;
+
+                System.out.println(
+                        "Q" + (i + 1) +
+                                " blank → 0 marks");
+
                 continue;
             }
 
+            // MCQ evaluation
             if (question.getQuestionType() == QuestionType.MCQ) {
-                // Direct case-insensitive string matching for MCQs
-                isCorrect = studentAns.trim().equalsIgnoreCase(correctAns.trim());
+
+                if (studentAns.trim()
+                        .equalsIgnoreCase(correctAns.trim())) {
+
+                    obtainedMarks = question.getMarks();
+                    correctCount++;
+                } else {
+                    wrongCount++;
+                }
+
             } else {
-                // For LONG_ANSWER, NUMERICAL, or complex items, let the LLM check semantic equivalence
-                isCorrect = llmEvaluationService.evaluateSubjectiveAnswer(
-                        question.getQuestionText(),
-                        correctAns,
-                        studentAns
-                );
+
+                // NUMERICAL / LONG_ANSWER / SUBJECTIVE
+                obtainedMarks =
+                        llmEvaluationService.evaluateSubjectiveMarks(
+                                question.getQuestionText(),
+                                correctAns,
+                                studentAns,
+                                question.getMarks()
+                        );
+
+                if (obtainedMarks > 0) {
+                    correctCount++;
+                } else {
+                    wrongCount++;
+                }
             }
 
-            if (isCorrect) {
-                correctCount++;
-                accumulatedScore += question.getMarks();
-            } else {
-                wrongCount++;
-            }
+            accumulatedScore += obtainedMarks;
+
+            // Debug logs
+            System.out.println("--------------------");
+            System.out.println("Question " + (i + 1));
+            System.out.println("Student: " + studentAns);
+            System.out.println("Correct: " + correctAns);
+            System.out.println("Marks Awarded: " + obtainedMarks);
         }
 
-        // 3. Compute Metrics
+        // 4. Metrics
         LocalDateTime endTime = LocalDateTime.now();
-        int secondsTaken = (int) Duration.between(startTime, endTime).toSeconds();
 
-        double accuracyPercentage = totalQuestions > 0
-                ? ((double) correctCount / totalQuestions) * 100.0
-                : 0.0;
+        int secondsTaken =
+                (int) Duration.between(startTime, endTime)
+                        .toSeconds();
 
-        // Arbitrary pass condition: passing score is greater than or equal to 40% of total marks
-        RESULT_STATUS status = (accumulatedScore >= (paper.getTotalMarks() * 0.4))
-                ? RESULT_STATUS.PASS
-                : RESULT_STATUS.FAIL;
+        double accuracyPercentage =
+                totalQuestions > 0
+                        ? ((double) correctCount / totalQuestions) * 100
+                        : 0;
 
-        // 4. Map into Entity and Persist
+        // Pass = >=40%
+        RESULT_STATUS status =
+                accumulatedScore >= (paper.getTotalMarks() * 0.4)
+                        ? RESULT_STATUS.PASS
+                        : RESULT_STATUS.FAIL;
+
+        // 5. Save Attempt
         TestAttempt attempt = TestAttempt.builder()
                 .user(user)
                 .questionPaper(paper)

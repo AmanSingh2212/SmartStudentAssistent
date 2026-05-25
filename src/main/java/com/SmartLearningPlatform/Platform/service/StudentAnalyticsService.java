@@ -6,6 +6,6 @@ public interface StudentAnalyticsService {
 
      boolean isStudentPassInTest(Long userId, Long testAttemptId) throws Exception;
 
-     StudentMarksResponse marksGetInTestByStudent(Long userId) throws Exception;
+     StudentMarksResponse marksGetInTestByStudent(Long userId, Long testAttemptId) throws Exception;
 
 }

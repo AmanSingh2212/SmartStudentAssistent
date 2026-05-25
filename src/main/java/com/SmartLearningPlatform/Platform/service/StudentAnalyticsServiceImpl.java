@@ -7,6 +7,7 @@ import com.SmartLearningPlatform.Platform.response.StudentMarksResponse;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 
@@ -37,7 +38,24 @@ public class StudentAnalyticsServiceImpl implements StudentAnalyticsService{
     }
 
     @Override
-    public StudentMarksResponse marksGetInTestByStudent(Long userId) throws Exception {
-        return null;
+    public StudentMarksResponse marksGetInTestByStudent(Long userId, Long testAttemptId) throws Exception {
+
+        List<TestAttempt> testAttempts = testAttemptRepository.findByUserId(userId);
+
+        TestAttempt testAttemptById = testAttempts.stream()
+                 .filter(testAttempt -> Objects.equals(testAttempt.getId(), testAttemptId)).findFirst()
+                 .orElseThrow(() -> new RuntimeException("TestAttempt not found with given id"));
+
+        int total_Marks = testAttemptById.getQuestionPaper().getTotalMarks();
+        double marks_score = testAttemptById.getScore();
+
+        double percentage = (marks_score/total_Marks) * 100;
+
+        StudentMarksResponse studentMarksResponse = new StudentMarksResponse();
+        studentMarksResponse.setStudentMarks(marks_score);
+        studentMarksResponse.setTotalMarks(total_Marks);
+        studentMarksResponse.setPercentage(percentage);
+
+        return studentMarksResponse;
     }
 }

@@ -11,8 +11,8 @@ import lombok.Setter;
 @AllArgsConstructor
 public class StudentMarksResponse {
 
-    private int totalMarks;
-    private int studentMarks;
-    private int percentage;
+    private double totalMarks;
+    private double studentMarks;
+    private double percentage;
 
 }

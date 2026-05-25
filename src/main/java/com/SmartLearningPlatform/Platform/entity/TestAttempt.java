@@ -40,7 +40,7 @@ public class TestAttempt {
     private LocalDateTime endTime;
 
     @Column(nullable = false)
-    private Integer score;
+    private Double score;
 
     @Column(nullable = false)
     private Integer correctAnswers;
