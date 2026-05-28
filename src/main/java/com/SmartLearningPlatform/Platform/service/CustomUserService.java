@@ -37,7 +37,7 @@ public class CustomUserService implements UserDetailsService {
         ROLE role = user.getRole();
 
         if (role == null) {
-            role = ROLE.STUDENT;
+            role = ROLE.ROLE_STUDENT;
         }
 
         List<GrantedAuthority> authorities = new ArrayList<>();

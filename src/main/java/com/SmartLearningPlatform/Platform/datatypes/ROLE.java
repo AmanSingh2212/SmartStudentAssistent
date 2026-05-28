@@ -2,8 +2,8 @@ package com.SmartLearningPlatform.Platform.datatypes;
 
 public enum ROLE {
 
-    STUDENT,
-    TEACHER,
-    ADMIN
+    ROLE_STUDENT,
+    ROLE_TEACHER,
+    ROLE_ADMIN
 
 }

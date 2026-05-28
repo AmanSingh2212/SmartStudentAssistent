@@ -2,6 +2,7 @@ package com.SmartLearningPlatform.Platform.config;
 
 import jakarta.annotation.Nullable;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -29,31 +30,43 @@ public class SecurityConfig {
             "/swagger-ui/**"
     };
 
+    @Bean
+    public JwtTokenValidator jwtTokenValidator() {
+        return new JwtTokenValidator();
+    }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtTokenValidator jwtTokenValidator) throws Exception {
         http
+                // 1. Disable CSRF (acceptable for Stateless JWT architectures)
                 .csrf(AbstractHttpConfigurer::disable)
+
+                // 2. Enable CORS with your custom configuration source
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+
+                // 3. Keep sessions completely stateless
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
+
+                // 4. Handle Unauthorized Access attempt explicitly
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint((request, response, authException) ->
+                                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized"))
+                )
+
+                // 5. URL Authorization rules (Your hierarchy order is correct!)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(PUBLIC_URLS).permitAll()
-
-                        // ADMIN only
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
-
-                        // TEACHER + ADMIN
                         .requestMatchers("/api/teacher/**").hasAnyRole("TEACHER", "ADMIN")
-
-                        // STUDENT + TEACHER + ADMIN
                         .requestMatchers("/api/student/**").hasAnyRole("STUDENT", "TEACHER", "ADMIN")
-
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().permitAll()
                 )
-                .addFilterBefore(new JwtTokenValidator(), BasicAuthenticationFilter.class)
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()));
+
+                // 6. Inject the Spring-managed JWT Filter instead of using 'new'
+                .addFilterBefore(jwtTokenValidator, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

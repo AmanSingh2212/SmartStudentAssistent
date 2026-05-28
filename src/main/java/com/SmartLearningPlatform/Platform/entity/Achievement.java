@@ -1,11 +1,12 @@
 package com.SmartLearningPlatform.Platform.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
+import java.util.ArrayList;
+import java.util.List;
+
+@Builder
 @Entity
 @Getter
 @Setter
@@ -28,5 +29,10 @@ public class Achievement {
 
     @Column(name = "badge_image", length = 500)
     private String badgeImage;
+
+    // Bidirectional Link to Bridge Table
+    @Builder.Default
+    @OneToMany(mappedBy = "achievement", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<User_Achievement> userAchievements = new ArrayList<>();
 
 }
